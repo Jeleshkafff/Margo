@@ -6,3 +6,4 @@ configparser
 SpeechRecognition
 PyQt5
 pyaudio
+PyQt6

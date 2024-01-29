@@ -1,7 +1,7 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout, QWidget, QTextEdit
-from PyQt5.QtGui import QPixmap, QMovie
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout, QWidget, QTextEdit
+from PyQt6.QtGui import QPixmap, QMovie
+from PyQt6.QtCore import Qt
 
 from Karr import Assistant  # Подключаем ваш класс Assistant из assistant.py
 
@@ -43,9 +43,13 @@ class AssistantGUI(QMainWindow):
         self.central_widget.setLayout(self.layout)
 
     def listen(self):
+
         text = self.assistant.listen()  # Слушаем и возвращаем текст из аудио
         self.text_area.append("Вы: " + text + "\n")
         self.assistant.recognizer(text)  # Передаем текст ассистенту для обработки
+
+    def display_bot_response(self, response):
+        self.text_area.append("Бот: " + response + "\n")    
 
     def stop(self):
         self.assistant.engine.stop()  # Останавливаем воспроизведение аудио
@@ -81,4 +85,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     gui = AssistantGUI()
     gui.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
