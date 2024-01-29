@@ -1,0 +1,40 @@
+
+
+# import sys
+# from PyQt5.QtGui import *
+# from PyQt5.QtWidgets import *
+#
+# class VoiceAssistantGUI(QWidget):
+#     def __init__(self):
+#         super().__init__()
+#         self.initUI()
+#
+#     def initUI(self):
+#
+#         # Создаем изображение помощника
+#         self.gifLabel = QLabel(self)
+#         movie = QMovie("assistant.gif")
+#         self.gifLabel.setMovie(movie)
+#         movie.start()
+#
+#         # Создаем текстовое поле для диалога
+#         self.textEdit = QTextEdit()
+#
+#         # Размещаем виджеты в макете
+#         hbox = QHBoxLayout()
+#         hbox.addWidget(self.gifLabel)
+#         hbox.addWidget(self.textEdit)
+#
+#         self.setLayout(hbox)
+#         self.setWindowTitle('Voice Assistant')
+#         self.setStyleSheet( "background-color: black; color: white ")
+#         self.setGeometry(100, 100, 800, 400)
+#         self.show()
+#
+# def main():
+#     app = QApplication(sys.argv)
+#     ex = VoiceAssistantGUI()
+#     sys.exit(app.exec_())
+#
+# if __name__ == '__main__':
+#     main()

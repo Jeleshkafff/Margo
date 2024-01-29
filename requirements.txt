@@ -1,0 +1,8 @@
+pyttsx3
+colorama
+fuzzywuzzy
+pyowm
+configparser
+SpeechRecognition
+PyQt5
+pyaudio
