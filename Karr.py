@@ -84,9 +84,9 @@ class Assistant:
     def opener(self, task):
         links = {
             ('youtube', 'ютуб', 'ютюб'): 'https://youtube.com/',
-            ('вк', 'вконтакте', 'контакт', 'vk'): 'https:vk.com/feed',
+            ('вк', 'вконтакте', 'контакт', 'vk'): 'https://vk.com/feed',
             ('браузер', 'интернет', 'browser'): 'https://google.com/',
-
+            ('тг', 'телеграм', 'telegram'): 'https://t.me/jeleshkaffff',
         }
         j = 0
         if 'и' in task:
@@ -105,15 +105,10 @@ class Assistant:
     def cfile(self):
         try:
             cfr = Assistant.settings['SETTINGS']['fr']
-            if cfr != 1:
-                file = open('settings.ini', 'w', encoding='UTF-8')
-                file.write('[SETTINGS]\ncountry = RU\nplace = Moskov\nfr = 1')
-                file.close()
+
         except Exception as e:
             print('Перезапустите Ассистента!', e)
-            file = open('settings.ini', 'w', encoding='UTF-8')
-            file.write('[SETTINGS]\ncountry = RU\nplace = Moskov\nfr = 1')
-            file.close()
+
 
     def quite(self):
         self.talk(choice(['Надеюсь мы скоро увидимся', 'Рада была помочь', 'Пока пока', 'Я отключаюсь']))
@@ -144,7 +139,7 @@ class Assistant:
             return self.text
 
 
-# Assistant().cfile()
+Assistant().cfile()
 
 # while True:
 #     Assistant().recognizer()

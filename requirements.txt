@@ -7,3 +7,5 @@ SpeechRecognition
 PyQt5
 pyaudio
 PyQt6
+python-Levenshtein
+auto-py-to-exe
