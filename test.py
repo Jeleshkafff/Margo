@@ -21,6 +21,7 @@ class AssistantGUI(QMainWindow):
         self.setWindowTitle("Голосовой Ассистент")
         self.setGeometry(100, 100, 1000, 300)
 
+
         self.assistant = Assistant()  # Создаем экземпляр  ассистента
 
         self.central_widget = QWidget()
@@ -40,7 +41,7 @@ class AssistantGUI(QMainWindow):
 
         self.button_listen = QPushButton("Слушать", self)
         self.layout.addWidget(self.button_listen)
-        self.button_listen.clicked.connect(self.start_listening)
+        self.button_listen.clicked.connect(self.listen)
 
         self.button_stop = QPushButton("Стоп", self)
         self.layout.addWidget(self.button_stop)
@@ -52,17 +53,27 @@ class AssistantGUI(QMainWindow):
 
         self.central_widget.setLayout(self.layout)
 
-    def start_listening(self):
-        self.listen_thread = ListenThread(self.assistant)
-        self.listen_thread.message_received.connect(self.handle_message)
-        self.listen_thread.start()
+    # def start_listening(self):
+    #     self.listen_thread = ListenThread(self.assistant)
+    #     self.listen_thread.message_received.connect(self.handle_message)
+    #     self.listen_thread.start()
 
-    def handle_message(self, message):
-        user_message_item = QListWidgetItem("Вы: " + message)
+    def listen(self):
+        text = self.assistant.listen()  # Слушаем и возвращаем текст из аудио
+        print(text)
+        user_message_item = QListWidgetItem("Вы: " + text + "\n")
         self.message_list.addItem(user_message_item)
-        bot_response = self.assistant.recognizer(message)  # Передаем текст ассистенту для обработки
+
+        bot_response = self.assistant.recognizer(text)  # Передаем текст ассистенту для обработки
+        print(bot_response)
         bot_message_item = QListWidgetItem("Бот: " + bot_response)
         self.message_list.addItem(bot_message_item)
+    # def handle_message(self, message):
+    #     user_message_item = QListWidgetItem("Вы: " + message)
+    #     self.message_list.addItem(user_message_item)
+    #     bot_response = self.assistant.recognizer(message)  # Передаем текст ассистенту для обработки
+    #     bot_message_item = QListWidgetItem("Бот: " + bot_response)
+    #     self.message_list.addItem(bot_message_item)
 
     def stop(self):
         self.assistant.engine.stop()  # Останавливаем воспроизведение аудио
