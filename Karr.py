@@ -62,7 +62,7 @@ class Assistant:
 
         return str(self.ans)
 
-    def recognizer(self):
+    def recognizer(self,text):
         self.text = self.cleaner(self.listen())
         print(self.text)
 
@@ -76,6 +76,7 @@ class Assistant:
 
         self.engine.runAndWait()
         self.engine.stop()
+        return ("AbobA")
 
     def time(self):
         now = datetime.datetime.now()
