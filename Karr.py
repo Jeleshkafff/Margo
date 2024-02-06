@@ -1,10 +1,10 @@
+import tkinter as tk
+from tkinter import scrolledtext
+from threading import Thread
 import pyttsx3
 import speech_recognition as sr
-import colorama
 from fuzzywuzzy import fuzz
 import datetime
-from os import system
-import sys
 from random import choice
 import webbrowser
 import configparser
@@ -16,17 +16,23 @@ class Assistant:
     config_dict = {'language': 'ru'}  # Simplified language configuration
 
     def __init__(self):
-        # Initialize pyttsx3 engine with desired voice
+        self.root = tk.Tk()
+        self.root.title("Голосовой помощник")
+        self.root.geometry("600x400")
+        self.root.configure(bg="#212121")  # Dark theme background color
+
+        self.text_area = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=50, height=20)
+        self.text_area.pack(pady=10)
+        self.text_area.configure(bg="#303030", fg="white")  # Dark theme text color
+
         self.engine = pyttsx3.init()
-        voices = self.engine.getProperty('voices')  # Get list of available voices
-        # Print available voices for reference
+        voices = self.engine.getProperty('voices')
         for voice in voices:
             selected_voice = 'VoiceName'
             if selected_voice in voice.name:
                 self.engine.setProperty('voice', voice.id)
                 break
         self.r = sr.Recognizer()
-        # Rest of the __init__ method remains unchanged
 
         self.cmds = {
             ('текущее время', 'сейчас времени', 'который час', "время"): self.time,
@@ -61,29 +67,29 @@ class Assistant:
         return ans
 
     def recognizer(self):
-        text = self.cleaner(self.listen())
-        print(text)
+        while True:
+            text = self.cleaner(self.listen())
+            if text != "":
+                self.text_area.insert(tk.END, "Вы: " + text + "\n")
+                self.text_area.see(tk.END)
 
-        if text.startswith(('открой', 'запусти', 'зайди', 'зайди на', "включи")):
-            self.opener(text)
+            if text.startswith(('открой', 'запусти', 'зайди', 'зайди на', "включи")):
+                self.opener(text)
 
-        for tasks, function in self.cmds.items():
-            for task in tasks:
-                if fuzz.ratio(task, text) >= 80:
-                    function()
-                    break
+            for tasks, function in self.cmds.items():
+                for task in tasks:
+                    if fuzz.ratio(task, text) >= 80:
+                        function()
+                        break
 
-        self.engine.runAndWait()
+            self.engine.runAndWait()
 
-        # Now let's handle answering questions using Google
-        question_keywords = ['что', 'как', 'почему', 'где', 'когда', 'кто', 'какой', 'какая', 'какие']
-        if any(keyword in text for keyword in question_keywords):
-            # Speak out the question to let the user know the assistant is processing it
-            self.talk("Дайте мне немного времени, чтобы найти ответ на ваш вопрос.")
-            # Use Google to search for an answer to the question
-            search_query = text  # You can refine the query if needed
-            search_url = "https://www.google.com/search?q=" + search_query
-            webbrowser.open(search_url)
+            question_keywords = ['что', 'как', 'почему', 'где', 'когда', 'кто', 'какой', 'какая', 'какие']
+            if any(keyword in text for keyword in question_keywords):
+                self.talk("Дайте мне немного времени, чтобы найти ответ на ваш вопрос.")
+                search_query = text
+                search_url = "https://www.google.com/search?q=" + search_query
+                webbrowser.open(search_url)
 
     def time(self):
         now = datetime.datetime.now()
@@ -121,8 +127,7 @@ class Assistant:
     def quit(self):
         self.talk(choice(['Надеюсь мы скоро увидимся', 'Рада была помочь', 'Пока пока', 'Я отключаюсь']))
         self.engine.stop()
-        system('cls')
-        sys.exit(0)
+        self.root.destroy()
 
     def hello(self):
         self.talk(choice(['Привет, чем могу помочь?', 'Здраствуйте', 'Приветствую']))
@@ -131,13 +136,15 @@ class Assistant:
         self.talk(choice(['Да, я', 'Что?', 'Хи-хи, что хотите?', "м? котя"]))
 
     def talk(self, text):
-        print(text)
+        self.text_area.insert(tk.END, "Ассистент: " + text + "\n")
+        self.text_area.see(tk.END)
         self.engine.say(text)
         self.engine.runAndWait()
 
     def listen(self):
         with sr.Microphone() as source:
-            print(colorama.Fore.LIGHTGREEN_EX + "Я вас слушаю...")
+            # self.text_area.insert(tk.END, "Ассистент: " + "Я вас слушаю...\n")
+            self.text_area.see(tk.END)
             self.r.adjust_for_ambient_noise(source)
             audio = self.r.listen(source)
             try:
@@ -146,8 +153,11 @@ class Assistant:
                 print(e)
                 return ""
 
+    def start(self):
+        self.cfile()
+        t = Thread(target=self.recognizer)
+        t.daemon = True
+        t.start()
+        self.root.mainloop()
 
-Assistant().cfile()
-
-while True:
-    Assistant().recognizer()
+Assistant().start()
