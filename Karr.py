@@ -6,28 +6,32 @@ import datetime
 from os import system
 import sys
 from random import choice
-from pyowm import OWM
-from pyowm.utils.config import get_default_config
 import webbrowser
 import configparser
-import pyaudio
 
 class Assistant:
     settings = configparser.ConfigParser()
     settings.read('settings.ini')
 
-    config_dict = get_default_config()  # Инициализация get_default_config()
-    config_dict['language'] = 'ru'  # Установка языка
+    config_dict = {'language': 'ru'}  # Simplified language configuration
 
     def __init__(self):
+        # Initialize pyttsx3 engine with desired voice
         self.engine = pyttsx3.init()
+        voices = self.engine.getProperty('voices')  # Get list of available voices
+        # Print available voices for reference
+        for voice in voices:
+            selected_voice = 'VoiceName'
+            if selected_voice in voice.name:
+                self.engine.setProperty('voice', voice.id)
+                break
         self.r = sr.Recognizer()
-        self.text = ''
+        # Rest of the __init__ method remains unchanged
 
         self.cmds = {
             ('текущее время', 'сейчас времени', 'который час', "время"): self.time,
             ('привет', 'добрый день', 'здравствуй'): self.hello,
-            ('пока', 'прощай'): self.quite,
+            ('пока', 'прощай'): self.quit,
             ('марго', 'маргошка', 'солнце', 'солнышко', 'моё солнышко', "солнце мое"): self.name,
         }
 
@@ -41,42 +45,45 @@ class Assistant:
             'пока', 'прощай',
         ]
 
-        self.num_task = 0
-        self.j = 0
-        self.ans = ''
-
     def cleaner(self, text):
-        self.text = text
-
         for i in self.ndels:
-            self.text = self.text.replace(i, '').strip()
-            self.text = self.text.replace('  ', ' ').strip()
+            text = text.replace(i, '').strip()
+            text = text.replace('  ', ' ').strip()
 
-        self.ans = self.text
+        ans = text
 
-        for i in range(len(self.commands)):
-            k = fuzz.ratio(text, self.commands[i])
-            if (k > 70) & (k > self.j):
-                self.ans = self.commands[i]
-                self.j = k
+        for command in self.commands:
+            similarity_ratio = fuzz.ratio(text, command)
+            if similarity_ratio > 70 and similarity_ratio > getattr(self, 'j', 0):
+                ans = command
+                self.j = similarity_ratio
 
-        return str(self.ans)
+        return ans
 
-    def recognizer(self,text):
-        self.text = self.cleaner(self.listen())
-        print(self.text)
+    def recognizer(self):
+        text = self.cleaner(self.listen())
+        print(text)
 
-        if self.text.startswith(('открой', 'запусти', 'зайди', 'зайди на', "включи")):
-            self.opener(self.text)
+        if text.startswith(('открой', 'запусти', 'зайди', 'зайди на', "включи")):
+            self.opener(text)
 
-        for tasks in self.cmds:
+        for tasks, function in self.cmds.items():
             for task in tasks:
-                if fuzz.ratio(task, self.text) >= 80:
-                    self.cmds[tasks]()
+                if fuzz.ratio(task, text) >= 80:
+                    function()
+                    break
 
         self.engine.runAndWait()
-        self.engine.stop()
-        return ("AbobA")
+
+        # Now let's handle answering questions using Google
+        question_keywords = ['что', 'как', 'почему', 'где', 'когда', 'кто', 'какой', 'какая', 'какие']
+        if any(keyword in text for keyword in question_keywords):
+            # Speak out the question to let the user know the assistant is processing it
+            self.talk("Дайте мне немного времени, чтобы найти ответ на ваш вопрос.")
+            # Use Google to search for an answer to the question
+            search_query = text  # You can refine the query if needed
+            search_url = "https://www.google.com/search?q=" + search_query
+            webbrowser.open(search_url)
 
     def time(self):
         now = datetime.datetime.now()
@@ -87,31 +94,31 @@ class Assistant:
             ('youtube', 'ютуб', 'ютюб'): 'https://youtube.com/',
             ('вк', 'вконтакте', 'контакт', 'vk'): 'https://vk.com/feed',
             ('браузер', 'интернет', 'browser'): 'https://google.com/',
-            ('тг', 'телеграм', 'telegram'): 'https://t.me/jeleshkaffff',
         }
-        j = 0
+
         if 'и' in task:
             task = task.replace('и', '').replace('  ', ' ')
         double_task = task.split()
-        if j != len(double_task):
-            for i in range(len(double_task)):
-                for vals in links:
-                    for word in vals:
-                        if fuzz.ratio(word, double_task[i]) > 75:
-                            webbrowser.open(links[vals])
-                            self.talk('Открываю ' + double_task[i])
-                            j += 1
-                            break
+
+        for i in range(len(double_task)):
+            for vals, link in links.items():
+                if any(fuzz.ratio(word, double_task[i]) > 75 for word in vals):
+                    webbrowser.open(link)
+                    self.talk('Открываю ' + double_task[i])
+                    return
 
     def cfile(self):
         try:
             cfr = Assistant.settings['SETTINGS']['fr']
-
+            if cfr != 1:
+                with open('settings.ini', 'w', encoding='UTF-8') as file:
+                    file.write('[SETTINGS]\ncountry = RU\nplace = Moskov\nfr = 1')
         except Exception as e:
             print('Перезапустите Ассистента!', e)
+            with open('settings.ini', 'w', encoding='UTF-8') as file:
+                file.write('[SETTINGS]\ncountry = RU\nplace = Moskov\nfr = 1')
 
-
-    def quite(self):
+    def quit(self):
         self.talk(choice(['Надеюсь мы скоро увидимся', 'Рада была помочь', 'Пока пока', 'Я отключаюсь']))
         self.engine.stop()
         system('cls')
@@ -134,13 +141,13 @@ class Assistant:
             self.r.adjust_for_ambient_noise(source)
             audio = self.r.listen(source)
             try:
-                self.text = self.r.recognize_google(audio, language="ru-RU").lower()
+                return self.r.recognize_google(audio, language="ru-RU").lower()
             except Exception as e:
                 print(e)
-            return self.text
+                return ""
 
 
 Assistant().cfile()
 
-# while True:
-#     Assistant().recognizer()
+while True:
+    Assistant().recognizer()
