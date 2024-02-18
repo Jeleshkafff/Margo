@@ -8,22 +8,33 @@ import datetime
 from random import choice
 import webbrowser
 import configparser
+from queue import Queue
 
 class Assistant:
-    settings = configparser.ConfigParser()
-    settings.read('settings.ini')
-
-    config_dict = {'language': 'ru'}  # Simplified language configuration
-
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Голосовой помощник")
-        self.root.geometry("600x400")
-        self.root.configure(bg="#212121")  # Dark theme background color
+        self.settings = configparser.ConfigParser()
+        self.settings.read('settings.ini')
 
-        self.text_area = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, width=50, height=20)
-        self.text_area.pack(pady=10)
-        self.text_area.configure(bg="#303030", fg="white")  # Dark theme text color
+        self.root = tk.Tk()
+        self.root.title("Voice Assistant")
+        self.root.geometry("600x400")
+        self.root.configure(bg="#212121")
+
+
+        self.message_frame = tk.Frame(self.root, bg="#212121")
+        self.message_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+
+        self.text_area = tk.Text(self.message_frame, wrap=tk.WORD, width=60, height=15,
+                                 bg="#303030", fg="white", font=("Comfortaa", 12))
+        self.text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+        self.text_area.insert(tk.END, "Здравствуй, меня зовут Марго, я ваш новый голосовой помощник\n", "message")
+        self.text_area.insert(tk.END, "К сожалению, сейчас я работаю в тестовом режиме\n", "message")
+        self.text_area.insert(tk.END, "Пока что я умею показывать время, открывать нужные вам соц сети, искать ответы в гугл\n", "message")
+        self.text_area.insert(tk.END, "Надеюсь я смогу вам помочь 💜\n", "message")
+        # Конфигурация тега "message" для установки выравнивания текста
+        self.text_area.tag_configure("message", justify="center")
 
         self.engine = pyttsx3.init()
         voices = self.engine.getProperty('voices')
@@ -41,8 +52,7 @@ class Assistant:
             ('марго', 'маргошка', 'солнце', 'солнышко', 'моё солнышко', "солнце мое"): self.name,
         }
 
-        self.ndels = ['ладно', 'не могла бы ты', 'пожалуйста',
-                      'текущее', 'сейчас']
+        self.ndels = ['ладно', 'не могла бы ты', 'пожалуйста', 'сейчас']
 
         self.commands = [
             'текущее время', 'сейчас времени', "время", 'который час',
@@ -50,6 +60,8 @@ class Assistant:
             'привет', 'добрый день', 'здравствуй',
             'пока', 'прощай',
         ]
+
+        self.speech_queue = Queue()
 
     def cleaner(self, text):
         for i in self.ndels:
@@ -70,8 +82,8 @@ class Assistant:
         while True:
             text = self.cleaner(self.listen())
             if text != "":
-                self.text_area.insert(tk.END, "Вы: " + text + "\n")
-                self.text_area.see(tk.END)
+                self.update_chat("Вы: " + text + "\n", sender="user")
+                self.update_chat(" " + "\n", sender="user")
 
             if text.startswith(('открой', 'запусти', 'зайди', 'зайди на', "включи")):
                 self.opener(text)
@@ -81,8 +93,6 @@ class Assistant:
                     if fuzz.ratio(task, text) >= 80:
                         function()
                         break
-
-            self.engine.runAndWait()
 
             question_keywords = ['что', 'как', 'почему', 'где', 'когда', 'кто', 'какой', 'какая', 'какие']
             if any(keyword in text for keyword in question_keywords):
@@ -100,6 +110,8 @@ class Assistant:
             ('youtube', 'ютуб', 'ютюб'): 'https://youtube.com/',
             ('вк', 'вконтакте', 'контакт', 'vk'): 'https://vk.com/feed',
             ('браузер', 'интернет', 'browser'): 'https://google.com/',
+            ('тг', 'телеграм', 'telegram'): 'https://t.me/jeleshkaffff',
+            ('музыку','песню','песенку'):choice(['https://www.youtube.com/watch?v=t-Ku3te9lmE&list=PL6c4Rm7WPCMb2jPCUMb3B52UYP59foCyC&index=2&ab_channel=BiaMK', 'https://www.youtube.com/watch?v=L5uV3gmOH9g&ab_channel=BMTHOfficialVEVO', 'https://www.youtube.com/watch?v=jivvlR25Isc&ab_channel=Sen', 'https://www.youtube.com/watch?v=d_HlPboLRL8&ab_channel=iamAURORAVEVO'])
         }
 
         if 'и' in task:
@@ -115,7 +127,7 @@ class Assistant:
 
     def cfile(self):
         try:
-            cfr = Assistant.settings['SETTINGS']['fr']
+            cfr = self.settings['SETTINGS']['fr']
             if cfr != 1:
                 with open('settings.ini', 'w', encoding='UTF-8') as file:
                     file.write('[SETTINGS]\ncountry = RU\nplace = Moskov\nfr = 1')
@@ -133,17 +145,25 @@ class Assistant:
         self.talk(choice(['Привет, чем могу помочь?', 'Здраствуйте', 'Приветствую']))
 
     def name(self):
-        self.talk(choice(['Да, я', 'Что?', 'Хи-хи, что хотите?', "м? котя"]))
+        self.talk(choice(['Да, я', 'Что?', 'Что хотите?']))
 
     def talk(self, text):
-        self.text_area.insert(tk.END, "Ассистент: " + text + "\n")
-        self.text_area.see(tk.END)
-        self.engine.say(text)
-        self.engine.runAndWait()
+        self.speech_queue.put(text)
+
+    def speech_synthesis(self):
+        while True:
+            try:
+                text = self.speech_queue.get()
+                self.update_chat("Марго: " + text + "\n", sender="bot")
+                self.update_chat(" " + "\n", sender="bot")
+                self.engine.say(text)
+                self.engine.runAndWait()
+                self.engine.stop()  # Освободить ресурсы голосового движка
+            except Exception as e:
+                print("Error in speech synthesis:", e)
 
     def listen(self):
         with sr.Microphone() as source:
-            # self.text_area.insert(tk.END, "Ассистент: " + "Я вас слушаю...\n")
             self.text_area.see(tk.END)
             self.r.adjust_for_ambient_noise(source)
             audio = self.r.listen(source)
@@ -153,11 +173,25 @@ class Assistant:
                 print(e)
                 return ""
 
+    def update_chat(self, message, sender):
+        self.text_area.configure(state='normal')  # Enable text entry
+        if sender == "user":
+            self.text_area.tag_configure("user", justify="right", foreground="white")
+            self.text_area.insert(tk.END, message, "user")
+        elif sender == "bot":
+            self.text_area.tag_configure("bot", justify="left", foreground="#E6BCFF")
+            self.text_area.insert(tk.END, message, "bot")
+        self.text_area.see(tk.END)
+        self.text_area.configure(state='disabled')  # Disable text entry
+
     def start(self):
         self.cfile()
         t = Thread(target=self.recognizer)
         t.daemon = True
         t.start()
+        t2 = Thread(target=self.speech_synthesis)
+        t2.daemon = True
+        t2.start()
         self.root.mainloop()
 
 Assistant().start()
