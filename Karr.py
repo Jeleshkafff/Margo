@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import scrolledtext
 from threading import Thread
 import pyttsx3
 import speech_recognition as sr
@@ -194,4 +193,4 @@ class Assistant:
         t2.start()
         self.root.mainloop()
 
-Assistant().start()
+# Assistant().start()

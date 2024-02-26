@@ -13,3 +13,4 @@ gtts
 playsound
 wikipedia-api
 googlesearch-python
+mock
